@@ -14,6 +14,7 @@ rules:
   - namespaces
   - nodes
   - pods
+  - pods/log
   - replicationcontrollers
   - services
   verbs:
