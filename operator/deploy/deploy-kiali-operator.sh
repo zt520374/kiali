@@ -179,7 +179,7 @@ fi
 # Export all possible variables for envsubst to be able to process
 export OPERATOR_IMAGE_NAME="${OPERATOR_IMAGE_NAME:-quay.io/kiali/kiali-operator}"
 export OPERATOR_IMAGE_VERSION="${OPERATOR_IMAGE_VERSION:-lastrelease}"
-export OPERATOR_INSTALL_KIALI=${OPERATOR_INSTALL_KIALI:-false}
+export OPERATOR_INSTALL_KIALI=${OPERATOR_INSTALL_KIALI:-true}
 export OPERATOR_NAMESPACE="${OPERATOR_NAMESPACE:-kiali-operator}"
 export OPERATOR_VERSION_LABEL="${OPERATOR_VERSION_LABEL:-$OPERATOR_IMAGE_VERSION}"
 
