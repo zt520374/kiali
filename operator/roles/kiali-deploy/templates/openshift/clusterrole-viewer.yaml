@@ -15,7 +15,6 @@ rules:
   - nodes
   - pods
   - replicationcontrollers
-  - routes
   - services
   verbs:
   - get
@@ -127,6 +126,11 @@ rules:
 - apiGroups: ["project.openshift.io"]
   resources:
   - projects
+  verbs:
+  - get
+- apiGroups: ["route.openshift.io"]
+  resources:
+  - routes
   verbs:
   - get
 - apiGroups: ["monitoring.kiali.io"]
