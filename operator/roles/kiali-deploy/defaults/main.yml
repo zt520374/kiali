@@ -41,22 +41,19 @@ kiali_defaults:
       api_key: ""
       display_link: true
       in_cluster: true
+      insecure_skip_verify: false
+      namespace: ""
       password: ""
       service: "grafana"
-      service_dashboard_pattern: "Istio%20Service%20Dashboard"
-      service_namespace: ""
       url: ""
       username: ""
-      var_namespace: "var-namespace"
-      var_service: "var-service"
-      var_workload: "var-workload"
-      workload_dashboard_pattern: "Istio%20Workload%20Dashboard"
     istio:
       istio_identity_domain: "svc.cluster.local"
       istio_sidecar_annotation: "sidecar.istio.io/status"
       url_service_version: ""
     prometheus:
       custom_metrics_url: ""
+      insecure_skip_verify: false
       url: ""
     tracing:
       enabled: true

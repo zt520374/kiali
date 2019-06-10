@@ -24,13 +24,11 @@ const (
 	EnvIdentityCertFile       = "IDENTITY_CERT_FILE"
 	EnvIdentityPrivateKeyFile = "IDENTITY_PRIVATE_KEY_FILE"
 
-	EnvPrometheusServiceURL       = "PROMETHEUS_SERVICE_URL"
-	EnvPrometheusCustomMetricsURL = "PROMETHEUS_CUSTOM_METRICS_URL"
-	EnvInCluster                  = "IN_CLUSTER"
-	EnvIstioIdentityDomain        = "ISTIO_IDENTITY_DOMAIN"
-	EnvIstioSidecarAnnotation     = "ISTIO_SIDECAR_ANNOTATION"
-	EnvIstioUrlServiceVersion     = "ISTIO_URL_SERVICE_VERSION"
-	EnvApiNamespacesExclude       = "API_NAMESPACES_EXCLUDE"
+	EnvInCluster              = "IN_CLUSTER"
+	EnvIstioIdentityDomain    = "ISTIO_IDENTITY_DOMAIN"
+	EnvIstioSidecarAnnotation = "ISTIO_SIDECAR_ANNOTATION"
+	EnvIstioUrlServiceVersion = "ISTIO_URL_SERVICE_VERSION"
+	EnvApiNamespacesExclude   = "API_NAMESPACES_EXCLUDE"
 
 	EnvServerAddress                    = "SERVER_ADDRESS"
 	EnvServerPort                       = "SERVER_PORT"
@@ -41,10 +39,14 @@ const (
 	EnvServerMetricsPort                = "SERVER_METRICS_PORT"
 	EnvServerMetricsEnabled             = "SERVER_METRICS_ENABLED"
 
+	EnvPrometheusServiceURL         = "PROMETHEUS_SERVICE_URL"
+	EnvPrometheusCustomMetricsURL   = "PROMETHEUS_CUSTOM_METRICS_URL"
+	EnvPrometheusInsecureSkipVerify = "PROMETHEUS_INSECURE_SKIP_VERIFY"
+
 	EnvGrafanaDisplayLink              = "GRAFANA_DISPLAY_LINK"
 	EnvGrafanaInCluster                = "GRAFANA_IN_CLUSTER"
 	EnvGrafanaURL                      = "GRAFANA_URL"
-	EnvGrafanaServiceNamespace         = "GRAFANA_SERVICE_NAMESPACE"
+	EnvGrafanaNamespace                = "GRAFANA_NAMESPACE"
 	EnvGrafanaService                  = "GRAFANA_SERVICE"
 	EnvGrafanaWorkloadDashboardPattern = "GRAFANA_WORKLOAD_DASHBOARD_PATTERN"
 	EnvGrafanaServiceDashboardPattern  = "GRAFANA_SERVICE_DASHBOARD_PATTERN"
@@ -54,6 +56,7 @@ const (
 	EnvGrafanaAPIKey                   = "GRAFANA_API_KEY"
 	EnvGrafanaUsername                 = "GRAFANA_USERNAME"
 	EnvGrafanaPassword                 = "GRAFANA_PASSWORD"
+	EnvGrafanaInsecureSkipVerify       = "GRAFANA_INSECURE_SKIP_VERIFY"
 
 	EnvTracingEnabled          = "TRACING_ENABLED"
 	EnvTracingURL              = "TRACING_URL"
@@ -122,25 +125,22 @@ type Server struct {
 
 // PrometheusConfig describes configuration of the Prometheus component
 type PrometheusConfig struct {
-	URL              string `yaml:"url,omitempty"`
-	CustomMetricsURL string `yaml:"custom_metrics_url,omitempty"`
+	URL                string `yaml:"url,omitempty"`
+	CustomMetricsURL   string `yaml:"custom_metrics_url,omitempty"`
+	InsecureSkipVerify bool   `yaml:"insecure_skip_verify,omitempty"`
 }
 
 // GrafanaConfig describes configuration used for Grafana links
 type GrafanaConfig struct {
-	DisplayLink              bool   `yaml:"display_link"`
-	InCluster                bool   `yaml:"in_cluster"`
-	URL                      string `yaml:"url"`
-	ServiceNamespace         string `yaml:"service_namespace"`
-	Service                  string `yaml:"service"`
-	WorkloadDashboardPattern string `yaml:"workload_dashboard_pattern"`
-	ServiceDashboardPattern  string `yaml:"service_dashboard_pattern"`
-	VarNamespace             string `yaml:"var_namespace"`
-	VarService               string `yaml:"var_service"`
-	VarWorkload              string `yaml:"var_workload"`
-	APIKey                   string `yaml:"api_key"`
-	Username                 string `yaml:"username"`
-	Password                 string `yaml:"password"`
+	DisplayLink        bool   `yaml:"display_link"`
+	InCluster          bool   `yaml:"in_cluster"`
+	URL                string `yaml:"url"`
+	Namespace          string `yaml:"namespace"`
+	Service            string `yaml:"service"`
+	APIKey             string `yaml:"api_key"`
+	Username           string `yaml:"username"`
+	Password           string `yaml:"password"`
+	InsecureSkipVerify bool   `yaml:"insecure_skip_verify,omitempty"`
 }
 
 // TracingConfig describes configuration used for tracing links
@@ -228,9 +228,6 @@ type Config struct {
 	Auth             AuthConfig        `yaml:"auth,omitempty"`
 }
 
-// Istio System namespace by default
-const IstioDefaultNamespace = "istio-system"
-
 // NewConfig creates a default Config struct
 func NewConfig() (c *Config) {
 	c = new(Config)
@@ -240,7 +237,7 @@ func NewConfig() (c *Config) {
 	c.Identity.CertFile = getDefaultString(EnvIdentityCertFile, "")
 	c.Identity.PrivateKeyFile = getDefaultString(EnvIdentityPrivateKeyFile, "")
 	c.InCluster = getDefaultBool(EnvInCluster, true)
-	c.IstioNamespace = strings.TrimSpace(getDefaultString(EnvIstioNamespace, IstioDefaultNamespace))
+	c.IstioNamespace = strings.TrimSpace(getDefaultString(EnvIstioNamespace, "istio-system"))
 	c.IstioLabels.AppLabelName = strings.TrimSpace(getDefaultString(EnvIstioLabelNameApp, "app"))
 	c.IstioLabels.VersionLabelName = strings.TrimSpace(getDefaultString(EnvIstioLabelNameVersion, "version"))
 	c.API.Namespaces.Exclude = getDefaultStringArray(EnvApiNamespacesExclude, "istio-operator,kube.*,openshift.*,ibm.*")
@@ -262,32 +259,29 @@ func NewConfig() (c *Config) {
 	c.Server.MetricsEnabled = getDefaultBool(EnvServerMetricsEnabled, true)
 
 	// Prometheus configuration
-	c.ExternalServices.Prometheus.URL = strings.TrimSpace(getDefaultString(EnvPrometheusServiceURL, fmt.Sprintf("http://prometheus.%s:9090", IstioDefaultNamespace)))
+	c.ExternalServices.Prometheus.URL = strings.TrimSpace(getDefaultString(EnvPrometheusServiceURL, fmt.Sprintf("http://prometheus.%s:9090", c.IstioNamespace)))
 	c.ExternalServices.Prometheus.CustomMetricsURL = strings.TrimSpace(getDefaultString(EnvPrometheusCustomMetricsURL, c.ExternalServices.Prometheus.URL))
+	c.ExternalServices.Prometheus.InsecureSkipVerify = getDefaultBool(EnvPrometheusInsecureSkipVerify, false)
 
 	// Grafana Configuration
 	c.ExternalServices.Grafana.DisplayLink = getDefaultBool(EnvGrafanaDisplayLink, true)
 	c.ExternalServices.Grafana.InCluster = getDefaultBool(EnvGrafanaInCluster, true)
 	c.ExternalServices.Grafana.URL = strings.TrimSpace(getDefaultString(EnvGrafanaURL, ""))
-	c.ExternalServices.Grafana.ServiceNamespace = strings.TrimSpace(getDefaultString(EnvGrafanaServiceNamespace, IstioDefaultNamespace))
+	c.ExternalServices.Grafana.Namespace = strings.TrimSpace(getDefaultString(EnvGrafanaNamespace, c.IstioNamespace))
 	c.ExternalServices.Grafana.Service = strings.TrimSpace(getDefaultString(EnvGrafanaService, "grafana"))
-	c.ExternalServices.Grafana.WorkloadDashboardPattern = strings.TrimSpace(getDefaultString(EnvGrafanaWorkloadDashboardPattern, "Istio%20Workload%20Dashboard"))
-	c.ExternalServices.Grafana.ServiceDashboardPattern = strings.TrimSpace(getDefaultString(EnvGrafanaServiceDashboardPattern, "Istio%20Service%20Dashboard"))
-	c.ExternalServices.Grafana.VarNamespace = strings.TrimSpace(getDefaultString(EnvGrafanaVarNamespace, "var-namespace"))
-	c.ExternalServices.Grafana.VarService = strings.TrimSpace(getDefaultString(EnvGrafanaVarService, "var-service"))
-	c.ExternalServices.Grafana.VarWorkload = strings.TrimSpace(getDefaultString(EnvGrafanaVarWorkload, "var-workload"))
 	c.ExternalServices.Grafana.APIKey = strings.TrimSpace(getDefaultString(EnvGrafanaAPIKey, ""))
 	c.ExternalServices.Grafana.Username = strings.TrimSpace(getDefaultString(EnvGrafanaUsername, ""))
 	c.ExternalServices.Grafana.Password = strings.TrimSpace(getDefaultString(EnvGrafanaPassword, ""))
 	if c.ExternalServices.Grafana.Username != "" && c.ExternalServices.Grafana.Password == "" {
 		log.Error("Grafana username (\"GRAFANA_USERNAME\") requires that Grafana password (\"GRAFANA_PASSWORD\") is set.")
 	}
+	c.ExternalServices.Grafana.InsecureSkipVerify = getDefaultBool(EnvGrafanaInsecureSkipVerify, false)
 
 	// Tracing Configuration
 	c.ExternalServices.Tracing.Enabled = getDefaultBool(EnvTracingEnabled, true)
 	c.ExternalServices.Tracing.Path = ""
 	c.ExternalServices.Tracing.URL = strings.TrimSpace(getDefaultString(EnvTracingURL, ""))
-	c.ExternalServices.Tracing.Namespace = strings.TrimSpace(getDefaultString(EnvTracingServiceNamespace, IstioDefaultNamespace))
+	c.ExternalServices.Tracing.Namespace = strings.TrimSpace(getDefaultString(EnvTracingServiceNamespace, c.IstioNamespace))
 
 	// Istio Configuration
 	c.ExternalServices.Istio.IstioIdentityDomain = strings.TrimSpace(getDefaultString(EnvIstioIdentityDomain, "svc.cluster.local"))
